@@ -1,0 +1,127 @@
+<input type="file" id="fileUpload" />
+<input type="button" id="upload" value="Upload" onclick="UploadProcess()" />
+<br />
+
+<div id="ExcelTable"></div>
+
+<div id="prtBnt" style="display:none;"><button onclick="ExportToExcel('xlsx')">Export table to excel</button></div>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.13.5/xlsx.full.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.13.5/jszip.js"></script>
+<script type="text/javascript" src="https://unpkg.com/xlsx@0.15.1/dist/xlsx.full.min.js"></script>
+<script type="text/javascript">
+    function UploadProcess() {
+        //Reference the FileUpload element.
+        var fileUpload = document.getElementById("fileUpload");
+        var regex = /(.xls|.xlsx)$/;
+        if (regex.test(fileUpload.value.toLowerCase())) {
+            document.getElementById("prtBnt").style.display="";
+            if (typeof (FileReader) != "undefined") {
+                var reader = new FileReader();
+                if (reader.readAsBinaryString) {
+                    reader.onload = function (e) {
+                        GetTableFromExcel(e.target.result);
+                    };
+                    reader.readAsBinaryString(fileUpload.files[0]);
+                } else {
+                    reader.onload = function (e) {
+                        var data = "";
+                        var bytes = new Uint8Array(e.target.result);
+                        for (var i = 0; i < bytes.byteLength; i++) {
+                            data += String.fromCharCode(bytes[i]);
+                        }
+                        GetTableFromExcel(data);
+                    };
+                    reader.readAsArrayBuffer(fileUpload.files[0]);
+                }
+            } else {
+                alert("This browser does not support HTML5.");
+            }
+        } else {
+            alert("Please upload a valid Excel file.");
+        }
+    };
+    function GetTableFromExcel(data) {
+        var workbook = XLSX.read(data, {
+            type: 'binary'
+        });
+        // change accordingly
+        var Sheet = workbook.SheetNames[6];
+        var excelRows = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[Sheet]);
+
+        var myTable = document.createElement("table");
+        myTable.border = "1";
+
+        var row = myTable.insertRow(-1);
+
+        var headerCell = document.createElement("TH");
+        headerCell.innerHTML = "Location A";
+        row.appendChild(headerCell);
+
+        headerCell = document.createElement("TH");
+        headerCell.innerHTML = "Qty";
+        row.appendChild(headerCell);
+
+        headerCell = document.createElement("TH");
+        headerCell.innerHTML = "Total Mat.";
+        row.appendChild(headerCell);
+        headerCell = document.createElement("TH");
+        headerCell.innerHTML = "Total Glass";
+        row.appendChild(headerCell);
+
+        for (var i = 0; i < excelRows.length; i++) {
+
+            if (i != (excelRows.length - 1)) {
+                var row = myTable.insertRow(-1);
+                var cell = row.insertCell(-1);
+                var temp = excelRows[i]["Location A"];
+                temp += " (";
+                temp += excelRows[i].Width;
+                temp += " x ";
+                temp += excelRows[i].Height;
+                temp += ") ";
+                cell.innerHTML = temp;
+                cell = row.insertCell(-1);
+                cell.innerHTML = excelRows[i].Qty;
+                cell = row.insertCell(-1);
+                cell.innerHTML = excelRows[i]["Total Mat."].substring(1);
+                cell = row.insertCell(-1);
+                cell.innerHTML = excelRows[i]["Total Glass"].substring(1);
+            }
+            else {
+                var row = myTable.insertRow(-1);
+                var cell = row.insertCell(-1);
+                cell.innerHTML = "";
+                cell = row.insertCell(-1);
+                cell.innerHTML = "";
+                cell = row.insertCell(-1);
+                cell.innerHTML = "";
+                cell = row.insertCell(-1);
+                cell.innerHTML = "";
+                
+                row=myTable.insertRow(-1);
+
+                cell = row.insertCell(-1);
+                cell.innerHTML = "Grand Total";
+                cell = row.insertCell(-1);
+                cell.innerHTML = excelRows[i].Qty;
+                cell = row.insertCell(-1);
+                cell.innerHTML = excelRows[i]["Total Mat."].substring(1);
+                cell = row.insertCell(-1);
+                cell.innerHTML = excelRows[i]["Total Glass"].substring(1);
+            }
+        }
+
+        var ExcelTable = document.getElementById("ExcelTable");
+        ExcelTable.innerHTML = "";
+        ExcelTable.appendChild(myTable);
+    };
+    function ExportToExcel(type, fn, dl) {
+       var elt = document.getElementById('ExcelTable');
+       var wb = XLSX.utils.table_to_book(elt, { sheet: "sheet1" });
+       var tx="Chetan" + ".";
+       return dl ?
+         XLSX.write(wb, { bookType: type, bookSST: true, type: 'base64' }):
+         XLSX.writeFile(wb, fn || (tx + (type || 'xlsx')));
+    }
+</script>
